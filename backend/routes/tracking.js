@@ -293,6 +293,7 @@ router.get('/pixel/:trackingId', async (req, res) => {
         type: 'EMAIL_OPENED_UPDATE',
         mailId: mail._id,
         trackingId,
+        threadId: mail.threadId, // Pass Thread ID for UI sync!
         senderEmail: mail.senderEmail,
         recipientEmail: recipientEmail,
         openedAt,

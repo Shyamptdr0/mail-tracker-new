@@ -464,17 +464,19 @@ async function reportEmailOpen(trackingId) {
 function updateTicksToGreen(mailId, recipientEmail, subject, trackingId, threadId) {
   const targetRecipient = (recipientEmail || '').toLowerCase().trim();
 
+  console.log(`[Tracker] 🔎 SYNCING: ID=${trackingId} Thread=${threadId} Rec=${targetRecipient}`);
+
   document.querySelectorAll('.tracker-indicator').forEach((indicator) => {
     const rowTrackId = indicator.getAttribute('data-tracking-id');
     const rowThreadId = indicator.getAttribute('data-thread-id');
     const rowRec = (indicator.getAttribute('data-recipient') || '').toLowerCase().trim();
     
-    // 1. Primary Match: Unique Tracking ID or Thread ID
-    let isMatch = (trackingId && rowTrackId === trackingId) || 
-                  (threadId && rowThreadId === threadId);
+    // 1. Match by Unique ID (Thread or Tracking)
+    let isMatch = (threadId && rowThreadId === threadId) || 
+                  (trackingId && rowTrackId === trackingId);
 
-    // 2. Secondary Match: Fallback to Recipient (if ID not yet tagged)
-    if (!isMatch && !rowTrackId && !rowThreadId) {
+    // 2. FALLBACK: Match by Recipient (If ID tagging hasn't finished yet)
+    if (!isMatch && !rowThreadId && !rowTrackId) {
       isMatch = targetRecipient && rowRec && (rowRec.includes(targetRecipient) || targetRecipient.includes(rowRec));
     }
 
@@ -485,6 +487,8 @@ function updateTicksToGreen(mailId, recipientEmail, subject, trackingId, threadI
         indicator.style.color = '#34a853'; 
         tick.style.color = '#34a853';
         if (trackingId) indicator.setAttribute('data-tracking-id', trackingId);
+        if (threadId) indicator.setAttribute('data-thread-id', threadId);
+        console.log('[Tracker] ✅ Green tick updated!');
       }
     }
   });

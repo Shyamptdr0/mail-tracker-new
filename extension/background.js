@@ -154,9 +154,12 @@ async function handleEmailOpened(data) {
   broadcastToGmailTabs({
     type: 'EMAIL_OPENED_UPDATE',
     mailId,
+    trackingId: data.trackingId,
+    threadId: data.threadId, // Essential for real-time tick sync
     recipientEmail,
     openedAt,
-    subject
+    subject,
+    device
   });
 }
 
