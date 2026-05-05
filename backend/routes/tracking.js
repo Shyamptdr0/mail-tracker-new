@@ -184,44 +184,45 @@ router.get('/pixel/:trackingId', async (req, res) => {
     0x00, 0x00, 0x00, 0x21, 0xF9, 0x04, 0x01, 0x0A,
     0x00, 0x01, 0x00, 0x2C, 0x00, 0x00, 0x00, 0x00,
     0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44,
-    0x01, 0x00, 0x3B
-  ]);
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader('Cache-Control', 'no-cache, max-age=0');
+  res.send(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64'));
 
-  res.type('image/gif');
-  res.set('Cache-Control', 'no-cache, no-store, must-revalidate');
-  res.set('ngrok-skip-browser-warning', 'true');
-  res.send(pixel);
-
-  // Process tracking asynchronously (don't block the pixel response)
   try {
     const { trackingId } = req.params;
     const userAgent = req.get('User-Agent') || '';
     const ipAddress = req.ip;
     const openedAt = new Date();
 
-    // ─── Find the mail record ──────────────────────────────────────────────
     const mail = await Mail.findOne({ trackingId });
+    if (!mail) return;
 
-    if (!mail) {
-      // Email not sent yet (pixel hit from compose window) — ignore silently
-      console.log(`⏳ Pixel hit for ${trackingId} but mail not registered yet — skipping`);
-      return;
+    // ─── HARDER FILTERING ──────────────────────────────────────────────────
+    const isBot = userAgent.includes('GoogleImageProxy') || 
+                  userAgent.includes('via ggpht.com') ||
+                  userAgent.includes('Google-Proxy') ||
+                  userAgent.includes('GmailImageProxy') ||
+                  userAgent.includes('Bot') ||
+                  userAgent.includes('Crawl');
+    
+    const secondsSinceSent = mail.sentAt ? (openedAt - new Date(mail.sentAt)) / 1000 : 999;
+    
+    // 1. Minimum 2-second shield (to ignore instant scan by Gmail right after send)
+    if (secondsSinceSent < 2) {
+       console.log(`🛡️ SHIELD: Ignored hit for ${trackingId} within 2s of send.`);
+       return;
     }
 
-    // ─── SIMPLE RELIABLE FILTERING ──────────────────────────────────────────
-    const isGoogleProxy = userAgent.includes('GoogleImageProxy') || 
-                          userAgent.includes('via ggpht.com');
-    
-    // Always update DB (Ticks Green)
+    // Always update DB
     if (!mail.firstOpenedAt) mail.firstOpenedAt = openedAt;
     mail.lastOpenedAt = openedAt;
     mail.openCount += 1;
     mail.ticks = 'green'; 
     await mail.save();
 
-    // Notify for EVERYTHING except Google Proxy
-    if (!isGoogleProxy) {
-      console.log(`📬 OPEN DETECTED! Notifying for ${trackingId}`);
+    // 2. Notify only if NOT a bot
+    if (!isBot) {
+      console.log(`📬 GENUINE OPEN: Notifying for ${trackingId}`);
       await TrackingEvent.createEvent({
         mailId: mail._id,
         trackingId,

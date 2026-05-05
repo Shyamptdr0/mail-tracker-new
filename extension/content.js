@@ -143,11 +143,8 @@ function addTrackerIndicator(container) {
   let subject = '';
 
   if (row) {
-    // Robust Recipient Detection
     const recEl = row.querySelector('[email]') || row.querySelector('[data-hovercard-id]');
     recipient = recEl ? (recEl.getAttribute('email') || recEl.getAttribute('data-hovercard-id')) : '';
-    
-    // Robust Subject Detection
     const subEl = row.querySelector('.bog') || row.querySelector('.y6');
     subject = subEl ? subEl.innerText.trim() : '';
   }
@@ -157,6 +154,7 @@ function addTrackerIndicator(container) {
   if (recipient) indicator.setAttribute('data-recipient', recipient.toLowerCase());
   if (subject) indicator.setAttribute('data-subject', subject);
 
+  // Default Gray
   indicator.innerHTML = `
     <span class="tracker-tick gray">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -165,13 +163,24 @@ function addTrackerIndicator(container) {
       </svg>
     </span>
   `;
-  indicator.style.cssText = `
-    display: inline-flex;
-    margin-right: 10px;
-    vertical-align: middle;
-    color: #9ca3af;
-  `;
+  indicator.style.cssText = `display: inline-flex; margin-right: 10px; vertical-align: middle; color: #9ca3af;`;
   container.insertAdjacentElement('afterbegin', indicator);
+
+  // ─── PERSISTENCE: Check DB status for this mail ───
+  if (subject || recipient) {
+    chrome.runtime.sendMessage({ 
+      type: 'GET_MAIL_STATUS', 
+      subject: subject,
+      recipientEmail: recipient 
+    }, (response) => {
+      if (response && response.ticks === 'green') {
+        const tick = indicator.querySelector('.tracker-tick');
+        tick.classList.replace('gray', 'green');
+        indicator.style.color = '#34a853';
+        tick.style.color = '#34a853';
+      }
+    });
+  }
 }
 
 // ─── Watch for compose window ──────────────────────────────────────────────────

@@ -202,6 +202,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     sendTrackingEvent(request.data).then(sendResponse);
     return true; // keep channel open for async
 
+  } else if (request.type === 'GET_MAIL_STATUS') {
+    const url = `${CONFIG.BACKEND_URL}/api/tracking/status?subject=${encodeURIComponent(request.subject || '')}&recipient=${encodeURIComponent(request.recipientEmail || '')}`;
+    fetch(url, { headers: FETCH_HEADERS })
+      .then(res => res.json())
+      .then(data => sendResponse(data))
+      .catch(err => {
+        console.error('[Background] Error fetching status:', err);
+        sendResponse({ success: false });
+      });
+    return true; // Keep channel open for async response
+
   } else if (request.type === 'GET_EVENTS') {
     chrome.storage.local.get(['events'], (result) => {
       sendResponse(result.events || []);
