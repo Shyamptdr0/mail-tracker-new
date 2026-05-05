@@ -138,6 +138,7 @@ async function pollForUpdates() {
 // ─── Event handlers ───────────────────────────────────────────────────────────
 async function handleEmailOpened(data) {
   const { mailId, recipientEmail, openedAt, subject } = data;
+  console.log(`[Background] Email opened by ${recipientEmail}`);
 
   showNotification({
     title:   '📬 Email Opened!',
@@ -145,8 +146,14 @@ async function handleEmailOpened(data) {
     iconUrl: 'icons/icon-128.png'
   });
 
-  broadcastToGmailTabs({ type: 'EMAIL_OPENED_UPDATE', mailId, recipientEmail, openedAt });
-  logEvent({ mailId, type: 'OPENED', recipientEmail, timestamp: openedAt });
+  // Broadcast to all Gmail tabs (DO NOT save to localStorage)
+  broadcastToGmailTabs({
+    type: 'EMAIL_OPENED_UPDATE',
+    mailId,
+    recipientEmail,
+    openedAt,
+    subject
+  });
 }
 
 function handleTrackingUpdate(data) {

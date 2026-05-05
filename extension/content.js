@@ -424,13 +424,16 @@ async function reportEmailOpen(trackingId) {
 
 // ─── Update ticks green (SPECIFIC MAIL ONLY) ──────────────────────────────────
 function updateTicksToGreen(mailId, recipientEmail, subject) {
+  const targetRecipient = (recipientEmail || '').toLowerCase();
+  const targetSubject = (subject || '').toLowerCase();
+
   document.querySelectorAll('.tracker-indicator').forEach((indicator) => {
-    const rowRec = indicator.getAttribute('data-recipient');
-    const rowSub = indicator.getAttribute('data-subject');
+    const rowRec = (indicator.getAttribute('data-recipient') || '').toLowerCase();
+    const rowSub = (indicator.getAttribute('data-subject') || '').toLowerCase();
     
-    // Match by Recipient OR Subject (for reliability)
-    const matchRec = rowRec && recipientEmail && rowRec.includes(recipientEmail.toLowerCase());
-    const matchSub = rowSub && subject && rowSub.includes(subject);
+    // Flexible Match: Check if one contains the other
+    const matchRec = targetRecipient && rowRec && (rowRec.includes(targetRecipient) || targetRecipient.includes(rowRec));
+    const matchSub = targetSubject && rowSub && (rowSub.includes(targetSubject) || targetSubject.includes(rowSub));
 
     if (matchRec || matchSub) {
       const tick = indicator.querySelector('.tracker-tick');
@@ -439,6 +442,7 @@ function updateTicksToGreen(mailId, recipientEmail, subject) {
         indicator.style.color = '#34a853'; 
         tick.style.color = '#34a853';
         tick.style.animation = 'tickAnimation 0.4s ease';
+        console.log(`[Tracker] ✅ Ticks turned green for: ${rowSub || rowRec}`);
       }
     }
   });

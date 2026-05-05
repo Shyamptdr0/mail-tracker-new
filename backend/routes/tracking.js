@@ -217,51 +217,50 @@ router.get('/pixel/:trackingId', async (req, res) => {
 
     // 2. Notify only if NOT a bot
     if (!isBot) {
-      console.log(`📬 GENUINE OPEN: Notifying for ${trackingId}`);
+      const recipientEmail = mail.recipients && mail.recipients.length > 0 ? mail.recipients[0].email : 'Recipient';
+      console.log(`📬 GENUINE OPEN: Notifying for ${trackingId} (Recipient: ${recipientEmail})`);
+      
       await TrackingEvent.createEvent({
         mailId: mail._id,
         trackingId,
         eventType: 'opened',
         senderEmail: mail.senderEmail,
-        recipientEmail: 'Recipient',
+        recipientEmail: recipientEmail,
         timestamp: openedAt,
         openDetails: { userAgent, ipAddress }
       });
 
-      // Send WebSocket notification to sender
-      const clients = req.app.locals.clients;
-      const wss = req.app.locals.wss;
-
-      const notification = JSON.stringify({
-        type: 'EMAIL_OPENED',
+      const notificationData = {
+        type: 'EMAIL_OPENED_UPDATE',
         mailId: mail._id,
         trackingId,
         senderEmail: mail.senderEmail,
-        recipientEmail: 'recipient',
+        recipientEmail: recipientEmail,
         openedAt,
         subject: mail.subject
-      });
+      };
+      const notificationString = JSON.stringify(notificationData);
+
+      // WebSocket services
+      const clients = req.app.locals.clients;
+      const wss = req.app.locals.wss;
 
       // Try to notify the specific sender
-      if (clients.has(mail.senderEmail)) {
+      if (clients && clients.has(mail.senderEmail)) {
         const client = clients.get(mail.senderEmail);
-        if (client.readyState === 1) client.send(notification);
+        if (client.readyState === 1) client.send(notificationString);
       }
 
-      // Broadcast to ALL connected clients (catches any logged-in user)
-      wss.clients.forEach((client) => {
-        if (client.readyState === 1) {
-          client.send(JSON.stringify({
-            type: 'EMAIL_OPENED',
-            mailId: mail._id,
-            trackingId,
-            openedAt,
-            subject: mail.subject
-          }));
-        }
-      });
+      // Broadcast to ALL connected clients
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === 1) {
+            client.send(notificationString);
+          }
+        });
+      }
 
-      console.log(`📬 Instant notification sent! Track ID: ${trackingId}`);
+      console.log(`📬 Full notification broadcasted for ${trackingId}`);
     }
 
   } catch (error) {
