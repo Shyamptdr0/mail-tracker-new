@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Tracker Pro</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <div class="header">
+      <div class="header-content">
+        <h1>📧 Tracker</h1>
+        <p class="subtitle">Real-time email tracking</p>
+      </div>
+      <button class="settings-btn" title="Settings">⚙️</button>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="stats-section">
+      <div class="stat-card">
+        <div class="stat-number" id="totalSent">0</div>
+        <div class="stat-label">Emails Sent</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="totalOpened">0</div>
+        <div class="stat-label">Opened</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="openRate">0%</div>
+        <div class="stat-label">Open Rate</div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="activity-section">
+      <h3>Recent Activity</h3>
+      <div class="activity-list" id="activityList">
+        <div class="empty-state">
+          <p>📭 No activity yet</p>
+          <small>Track your first email to see activity</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div class="status-indicator" id="wsStatus">
+        <span class="status-dot" id="statusDot"></span>
+        <span class="status-text" id="statusText">Connecting...</span>
+      </div>
+      <div class="status-time" id="lastUpdate">Just now</div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+
+</html>

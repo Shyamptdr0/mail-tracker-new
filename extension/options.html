@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Tracker Pro - Settings</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      color: #2c3e50;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 40px 20px;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 8px;
+    }
+
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
+
+    .content {
+      padding: 40px;
+    }
+
+    .settings-group {
+      margin-bottom: 32px;
+    }
+
+    .settings-group h2 {
+      font-size: 16px;
+      color: #667eea;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      font-weight: 700;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #2c3e50;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="url"],
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 2px solid #e8eef7;
+      border-radius: 6px;
+      font-size: 13px;
+      transition: all 0.3s ease;
+      font-family: 'Courier New', monospace;
+    }
+
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    input[type="url"]:focus,
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+      background: #f9fafb;
+    }
+
+    .checkbox-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+      accent-color: #667eea;
+    }
+
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 13px;
+      text-transform: none;
+      letter-spacing: normal;
+      color: #555;
+    }
+
+    .description {
+      font-size: 12px;
+      color: #8892b0;
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      margin-top: 30px;
+      padding-top: 30px;
+      border-top: 1px solid #e8eef7;
+    }
+
+    button {
+      flex: 1;
+      padding: 12px 24px;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-save {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .btn-save:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-reset {
+      background: #f5f7fa;
+      color: #667eea;
+      border: 2px solid #e8eef7;
+    }
+
+    .btn-reset:hover {
+      background: #e8eef7;
+      border-color: #667eea;
+    }
+
+    .success-message {
+      display: none;
+      padding: 12px 16px;
+      background: #e8f5e9;
+      border-left: 4px solid #34a853;
+      border-radius: 4px;
+      color: #2e7d32;
+      font-size: 13px;
+      margin-bottom: 20px;
+      animation: slideIn 0.3s ease;
+    }
+
+    .success-message.show {
+      display: block;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      margin-left: 8px;
+    }
+
+    .status-badge.connected {
+      background: #e8f5e9;
+      color: #388e3c;
+    }
+
+    .status-badge.disconnected {
+      background: #ffebee;
+      color: #c62828;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>⚙️ Settings</h1>
+      <p>Configure Email Tracker Pro</p>
+    </div>
+
+    <div class="content">
+      <div class="success-message" id="successMessage">
+        ✓ Settings saved successfully!
+      </div>
+
+      <!-- Server Configuration -->
+      <div class="settings-group">
+        <h2>🔗 Server Configuration</h2>
+
+        <div class="form-group">
+          <label for="backendUrl">Backend URL</label>
+          <input 
+            type="url" 
+            id="backendUrl" 
+            placeholder="http://localhost:5000"
+            value="http://localhost:5000"
+          >
+          <div class="description">
+            URL where your tracking server is running
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="wsUrl">WebSocket URL</label>
+          <input 
+            type="url" 
+            id="wsUrl" 
+            placeholder="ws://localhost:5000"
+            value="ws://localhost:5000"
+          >
+          <div class="description">
+            WebSocket endpoint for real-time updates
+          </div>
+        </div>
+      </div>
+
+      <!-- Email Configuration -->
+      <div class="settings-group">
+        <h2>📧 Email Settings</h2>
+
+        <div class="form-group">
+          <label for="userEmail">Your Email Address</label>
+          <input 
+            type="email" 
+            id="userEmail" 
+            placeholder="your.email@gmail.com"
+          >
+          <div class="description">
+            Used to identify you in the tracking system
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="apiKey">API Key</label>
+          <input 
+            type="text" 
+            id="apiKey" 
+            placeholder="Your API key"
+          >
+          <div class="description">
+            Optional: Authentication token from your backend
+          </div>
+        </div>
+      </div>
+
+      <!-- Notification Settings -->
+      <div class="settings-group">
+        <h2>🔔 Notifications</h2>
+
+        <div class="form-group">
+          <div class="checkbox-group">
+            <input 
+              type="checkbox" 
+              id="desktopNotifications" 
+              checked
+            >
+            <label for="desktopNotifications" class="checkbox-label">
+              Enable desktop notifications
+            </label>
+          </div>
+          <div class="description">
+            Show notifications when emails are opened
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="checkbox-group">
+            <input 
+              type="checkbox" 
+              id="soundNotifications" 
+              checked
+            >
+            <label for="soundNotifications" class="checkbox-label">
+              Play sound on email open
+            </label>
+          </div>
+          <div class="description">
+            Play a sound when someone opens your tracked email
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="notificationTimeout">Notification Duration (seconds)</label>
+          <input 
+            type="text" 
+            id="notificationTimeout" 
+            placeholder="5"
+            value="5"
+          >
+          <div class="description">
+            How long notifications stay visible
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced Settings -->
+      <div class="settings-group">
+        <h2>⚡ Advanced Settings</h2>
+
+        <div class="form-group">
+          <div class="checkbox-group">
+            <input 
+              type="checkbox" 
+              id="autoTrack" 
+              checked
+            >
+            <label for="autoTrack" class="checkbox-label">
+              Auto-enable tracking on new emails
+            </label>
+          </div>
+          <div class="description">
+            Automatically enable tracking for all new emails
+          </div>
+        </div>
+
+        <div class="form-group">
+          <div class="checkbox-group">
+            <input 
+              type="checkbox" 
+              id="debugMode"
+            >
+            <label for="debugMode" class="checkbox-label">
+              Enable debug mode
+            </label>
+          </div>
+          <div class="description">
+            Show detailed logs in browser console
+          </div>
+        </div>
+      </div>
+
+      <!-- Buttons -->
+      <div class="button-group">
+        <button class="btn-save" id="saveBtn">💾 Save Settings</button>
+        <button class="btn-reset" id="resetBtn">↺ Reset</button>
+      </div>
+
+      <!-- Status -->
+      <div style="margin-top: 20px; text-align: center; font-size: 12px; color: #8892b0;">
+        <p>Version 1.0.0</p>
+      </div>
+    </div>
+  </div>
+
+  <script src="options.js"></script>
+</body>
+</html>

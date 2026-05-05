@@ -1,0 +1,61 @@
+{
+  "manifest_version": 3,
+  "name": "Email Tracker Pro",
+  "version": "1.0.0",
+  "description": "Track when recipients open your emails in real-time with visual indicators and notifications",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "notifications",
+    "storage",
+    "webRequest",
+    "tabs",
+    "alarms"
+  ],
+  "host_permissions": [
+    "https://mail.google.com/*",
+    "https://gmail.google.com/*",
+    "https://stress-sector-spiritism.ngrok-free.dev/*",
+    "http://localhost:5000/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://mail.google.com/*",
+        "https://gmail.google.com/*"
+      ],
+      "js": [
+        "content.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "options_page": "options.html",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "injected-ui.js"
+      ],
+      "matches": [
+        "https://mail.google.com/*",
+        "https://gmail.google.com/*"
+      ]
+    }
+  ]
+}
