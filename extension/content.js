@@ -263,7 +263,15 @@ function setupComposeTracking(composeWindow, retryCount = 0) {
 
   // Generate a tracking ID upfront for this compose session
   let trackingId = crypto.randomUUID();
-  let pixelInjected = false;
+  
+  // ─── AUTO-TRACKING ON BY DEFAULT ───────────────────────────────────────────
+  let pixelInjected = true;
+  injectTrackingPixel(composeWindow, trackingId);
+  console.log('[Tracker] 📍 Auto-tracking enabled for this email');
+
+  trackingButton.classList.add('active');
+  trackingButton.innerHTML = '📍 Tracking ON';
+  trackingButton.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
 
   trackingButton.addEventListener('click', (e) => {
     e.stopPropagation();
@@ -274,12 +282,9 @@ function setupComposeTracking(composeWindow, retryCount = 0) {
       : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
 
     if (isActive) {
-      // Inject pixel into email body NOW (before send)
       injectTrackingPixel(composeWindow, trackingId);
       pixelInjected = true;
-      showInlineNotification(null, '📍 Tracking pixel added! Send to track opens.');
     } else {
-      // Remove pixel if user turns off tracking
       removeTrackingPixel(composeWindow, trackingId);
       pixelInjected = false;
     }

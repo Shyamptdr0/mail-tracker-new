@@ -199,43 +199,29 @@ router.get('/pixel/:trackingId', async (req, res) => {
     const ipAddress = req.ip;
     const openedAt = new Date();
 
-    // ─── FILTER GMAIL PROXY (False Positives) ────────────────────────────────
-    const isGoogleProxy = userAgent.includes('GoogleImageProxy') || 
-                          userAgent.includes('via ggpht.com') ||
-                          userAgent.includes('Google-Proxy');
+    // ─── INSTANT MODE (No filters, no shields) ──────────────────────────────
+    if (!mail.firstOpenedAt) mail.firstOpenedAt = openedAt;
+    mail.lastOpenedAt = openedAt;
+    mail.openCount += 1;
+    mail.ticks = 'green'; 
+    await mail.save();
+    console.log(`🚀 INSTANT: DB Updated & Notification triggering for ${trackingId}`);
 
-    console.log(`📸 Pixel hit: ${trackingId} | UA: ${userAgent.substring(0, 60)} | Proxy: ${isGoogleProxy}`);
+    // Always notify instantly
+    const shouldNotify = true; 
 
-    // If it's a proxy hit, we still update the DB but DON'T send a notification yet
-    // OR we ignore it if it happens within 30 seconds of sending
-    let mail = await Mail.findOne({ trackingId });
-
-    if (!mail) {
-       // ... (auto-create logic remains same)
-    }
-
-    // Check if this is a genuine open (not a bot/proxy)
-    let isGenuineOpen = !isGoogleProxy;
-
-    // ─── TIME SHIELD: Ignore opens within 60 seconds of sending ────────────────
-    if (mail.sentAt) {
-      const secondsSinceSent = (openedAt - new Date(mail.sentAt)) / 1000;
-      if (secondsSinceSent < 60) {
-        console.log(`⏳ Shield Active: Hit only ${Math.round(secondsSinceSent)}s after sending. Ignoring notification for ${trackingId}`);
-        isGenuineOpen = false;
-      }
-    }
-
-    if (isGenuineOpen) {
-      if (!mail.firstOpenedAt) mail.firstOpenedAt = openedAt;
-      mail.lastOpenedAt = openedAt;
-      mail.openCount += 1;
-      mail.ticks = 'green'; // Force green ticks on genuine open
-      await mail.save();
-    }
-
-    // Create tracking event and send notification ONLY if genuine
-    if (isGenuineOpen) {
+    if (shouldNotify) {
+      await TrackingEvent.createEvent({
+        mailId: mail._id,
+        trackingId,
+        eventType: 'opened',
+        senderEmail: mail.senderEmail,
+        recipientEmail: 'unknown@recipient.com',
+        timestamp: openedAt,
+        openDetails: { userAgent, ipAddress }
+      });
+      
+      // ... (WebSocket code follows)
       await TrackingEvent.createEvent({
         mailId: mail._id,
         trackingId,
@@ -279,9 +265,7 @@ router.get('/pixel/:trackingId', async (req, res) => {
         }
       });
 
-      console.log(`📬 Genuine open! Track ID: ${trackingId} | Subject: ${mail.subject}`);
-    } else {
-      console.log(`🤖 Proxy ping ignored for notification: ${trackingId}`);
+      console.log(`📬 Instant notification sent! Track ID: ${trackingId}`);
     }
 
   } catch (error) {
