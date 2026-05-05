@@ -166,20 +166,34 @@ function addTrackerIndicator(container) {
   indicator.style.cssText = `display: inline-flex; margin-right: 10px; vertical-align: middle; color: #9ca3af;`;
   container.insertAdjacentElement('afterbegin', indicator);
 
-  // ─── PERSISTENCE: Check DB status for this mail ───
+  // ─── PERSISTENCE:  // Fetch initial status from DB (Persistence)
   if (subject || recipient) {
-    chrome.runtime.sendMessage({ 
-      type: 'GET_MAIL_STATUS', 
-      subject: subject,
-      recipientEmail: recipient 
-    }, (response) => {
-      if (response && response.ticks === 'green') {
-        const tick = indicator.querySelector('.tracker-tick');
-        tick.classList.replace('gray', 'green');
-        indicator.style.color = '#34a853';
-        tick.style.color = '#34a853';
-      }
-    });
+    if (!chrome.runtime?.id) return; // Check if context is still valid
+    
+    try {
+      chrome.runtime.sendMessage({ 
+        type: 'GET_MAIL_STATUS', 
+        subject: subject,
+        recipientEmail: recipient 
+      }, (response) => {
+        if (chrome.runtime.lastError) return;
+        if (response && response.success) {
+          if (response.trackingId) {
+            indicator.setAttribute('data-tracking-id', response.trackingId);
+          }
+          if (response.ticks === 'green') {
+            const tick = indicator.querySelector('.tracker-tick');
+            if (tick) {
+              tick.classList.replace('gray', 'green');
+              indicator.style.color = '#34a853';
+              tick.style.color = '#34a853';
+            }
+          }
+        }
+      });
+    } catch (err) {
+      console.warn('[Tracker] Context invalidated, skipping status check');
+    }
   }
 }
 
@@ -440,26 +454,36 @@ async function reportEmailOpen(trackingId) {
 }
 
 // ─── Update ticks green (SPECIFIC MAIL ONLY) ──────────────────────────────────
-function updateTicksToGreen(mailId, recipientEmail, subject) {
-  const targetRecipient = (recipientEmail || '').toLowerCase();
-  const targetSubject = (subject || '').toLowerCase();
+function updateTicksToGreen(mailId, recipientEmail, subject, trackingId) {
+  const targetRecipient = (recipientEmail || '').toLowerCase().trim();
+  const targetSubject = (subject || '').toLowerCase().trim();
+
+  console.log(`[Tracker] 🔎 Searching for row to update. TargetID: ${trackingId} | Rec: ${targetRecipient}`);
 
   document.querySelectorAll('.tracker-indicator').forEach((indicator) => {
-    const rowRec = (indicator.getAttribute('data-recipient') || '').toLowerCase();
-    const rowSub = (indicator.getAttribute('data-subject') || '').toLowerCase();
+    const rowTrackId = indicator.getAttribute('data-tracking-id');
+    const rowRec = (indicator.getAttribute('data-recipient') || '').toLowerCase().trim();
+    const rowSub = (indicator.getAttribute('data-subject') || '').toLowerCase().trim();
     
-    // Flexible Match: Check if one contains the other
-    const matchRec = targetRecipient && rowRec && (rowRec.includes(targetRecipient) || targetRecipient.includes(rowRec));
-    const matchSub = targetSubject && rowSub && (rowSub.includes(targetSubject) || targetSubject.includes(rowSub));
+    // 1. Primary Match: Unique Tracking ID
+    let isMatch = trackingId && rowTrackId === trackingId;
 
-    if (matchRec || matchSub) {
+    // 2. Secondary Match: Fallback to Recipient + Subject (if ID not yet tagged)
+    if (!isMatch && !rowTrackId) {
+      const isEmailMatch = targetRecipient && rowRec && (rowRec.includes(targetRecipient) || targetRecipient.includes(rowRec));
+      const isSubjectMatch = targetSubject && rowSub && (rowSub.includes(targetSubject) || targetSubject.includes(rowSub));
+      isMatch = isEmailMatch && isSubjectMatch; // Use AND for better specificity
+    }
+
+    if (isMatch) {
       const tick = indicator.querySelector('.tracker-tick');
       if (tick && tick.classList.contains('gray')) {
         tick.classList.replace('gray', 'green');
         indicator.style.color = '#34a853'; 
         tick.style.color = '#34a853';
-        tick.style.animation = 'tickAnimation 0.4s ease';
-        console.log(`[Tracker] ✅ Ticks turned green for: ${rowSub || rowRec}`);
+        tick.style.animation = 'tickAnimation 0.4s ease-out';
+        if (trackingId) indicator.setAttribute('data-tracking-id', trackingId);
+        console.log(`[Tracker] ✅ MATCH FOUND! Ticks turned green for ID: ${trackingId || rowSub}`);
       }
     }
   });

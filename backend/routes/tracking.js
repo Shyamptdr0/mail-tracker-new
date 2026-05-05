@@ -178,6 +178,32 @@ router.post('/report-open', async (req, res) => {
   }
 });
 
+// Get current status for a mail (for initial tick display)
+router.get('/status', async (req, res) => {
+  try {
+    const { subject, recipient } = req.query;
+    let query = {};
+    if (subject) query.subject = subject;
+    if (recipient) query['recipients.email'] = recipient;
+
+    // Get the latest one
+    const mail = await Mail.findOne(query).sort({ sentAt: -1 });
+    
+    if (mail) {
+      res.json({ 
+        success: true, 
+        ticks: mail.ticks, 
+        openCount: mail.openCount,
+        trackingId: mail.trackingId 
+      });
+    } else {
+      res.json({ success: false });
+    }
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Tracking pixel endpoint (1x1 transparent image)
 router.get('/pixel/:trackingId', async (req, res) => {
   // Always return pixel first (fast response for email clients)
@@ -192,7 +218,19 @@ router.get('/pixel/:trackingId', async (req, res) => {
     const ipAddress = req.ip;
     const openedAt = new Date();
 
-    const mail = await Mail.findOne({ trackingId });
+    // ─── INSTANT LOOKUP WITH RETRY ─────────────────────────────────────────
+    let mail = await Mail.findOne({ trackingId });
+    
+    // If not found, it might be a race condition (pixel hit before register)
+    if (!mail) {
+      for (let i = 0; i < 3; i++) {
+        console.log(`⏳ Retry ${i+1}: Waiting for mail record ${trackingId}...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        mail = await Mail.findOne({ trackingId });
+        if (mail) break;
+      }
+    }
+
     if (!mail) return;
 
     // ─── HARDER FILTERING ──────────────────────────────────────────────────
@@ -203,13 +241,7 @@ router.get('/pixel/:trackingId', async (req, res) => {
                   userAgent.includes('Bot') ||
                   userAgent.includes('Crawl');
     
-    const secondsSinceSent = mail.sentAt ? (openedAt - new Date(mail.sentAt)) / 1000 : 999;
-    
-    // 1. Minimum 2-second shield (to ignore instant scan by Gmail right after send)
-    if (secondsSinceSent < 2) {
-       console.log(`🛡️ SHIELD: Ignored hit for ${trackingId} within 2s of send.`);
-       return;
-    }
+    // Shield removed for instant testing
 
     // ─── SELF-OPEN SUPPRESSION ─────────────────────────────────────────────
     // If the hit matches the sender's IP and UA, it's likely a self-open

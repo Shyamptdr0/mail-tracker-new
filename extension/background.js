@@ -67,7 +67,6 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 // ─── WebSocket ────────────────────────────────────────────────────────────────
 function initWebSocket() {
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
-
   clearTimeout(wsReconnectTimer);
 
   try {
@@ -83,20 +82,15 @@ function initWebSocket() {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        if (data.type === 'EMAIL_OPENED')    handleEmailOpened(data);
+        if (data.type === 'EMAIL_OPENED' || data.type === 'EMAIL_OPENED_UPDATE') {
+          handleEmailOpened(data);
+        }
         if (data.type === 'TRACKING_UPDATE') handleTrackingUpdate(data);
       } catch (_) {}
     };
 
-    ws.onerror = () => {
-      // Schedule silent reconnect (avoid console spam)
-      scheduleReconnect();
-    };
-
-    ws.onclose = () => {
-      console.log('🔌 WebSocket closed — reconnecting in 5s');
-      scheduleReconnect();
-    };
+    ws.onerror = () => scheduleReconnect();
+    ws.onclose = () => scheduleReconnect();
 
   } catch (err) {
     console.warn('WebSocket init failed:', err.message);
