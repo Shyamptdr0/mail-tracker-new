@@ -452,7 +452,9 @@ function updateTicksToGreen(mailId, recipientEmail, subject) {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.type === 'EMAIL_OPENED_UPDATE') {
     updateTicksToGreen(request.mailId, request.recipientEmail, request.subject);
-    showInlineNotification(null, `✅ ${request.recipientEmail || 'Recipient'} opened your email!`);
+    
+    const deviceTag = request.device ? ` on ${request.device}` : '';
+    showInlineNotification(null, `✅ ${request.recipientEmail || 'Recipient'} opened your email${deviceTag}!`);
   } else if (request.type === 'TRACKING_STATUS_UPDATE') {
     console.log('[Tracker] Status update:', request.status);
   }

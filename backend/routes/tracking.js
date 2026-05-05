@@ -208,6 +208,16 @@ router.get('/pixel/:trackingId', async (req, res) => {
        return;
     }
 
+    // ─── DEVICE DETECTION ──────────────────────────────────────────────────
+    let device = 'Desktop';
+    if (/android|iphone|ipad|ipod|mobile/i.test(userAgent)) {
+      device = 'Mobile';
+    } else if (/macintosh|mac os x/i.test(userAgent)) {
+      device = 'Mac';
+    } else if (/windows/i.test(userAgent)) {
+      device = 'Windows';
+    }
+
     // Always update DB
     if (!mail.firstOpenedAt) mail.firstOpenedAt = openedAt;
     mail.lastOpenedAt = openedAt;
@@ -218,7 +228,7 @@ router.get('/pixel/:trackingId', async (req, res) => {
     // 2. Notify only if NOT a bot
     if (!isBot) {
       const recipientEmail = mail.recipients && mail.recipients.length > 0 ? mail.recipients[0].email : 'Recipient';
-      console.log(`📬 GENUINE OPEN: Notifying for ${trackingId} (Recipient: ${recipientEmail})`);
+      console.log(`📬 GENUINE OPEN: Notifying for ${trackingId} (Device: ${device})`);
       
       await TrackingEvent.createEvent({
         mailId: mail._id,
@@ -227,7 +237,7 @@ router.get('/pixel/:trackingId', async (req, res) => {
         senderEmail: mail.senderEmail,
         recipientEmail: recipientEmail,
         timestamp: openedAt,
-        openDetails: { userAgent, ipAddress }
+        openDetails: { userAgent, ipAddress, device }
       });
 
       const notificationData = {
@@ -237,7 +247,8 @@ router.get('/pixel/:trackingId', async (req, res) => {
         senderEmail: mail.senderEmail,
         recipientEmail: recipientEmail,
         openedAt,
-        subject: mail.subject
+        subject: mail.subject,
+        device: device // Include device in notification
       };
       const notificationString = JSON.stringify(notificationData);
 
@@ -245,22 +256,16 @@ router.get('/pixel/:trackingId', async (req, res) => {
       const clients = req.app.locals.clients;
       const wss = req.app.locals.wss;
 
-      // Try to notify the specific sender
       if (clients && clients.has(mail.senderEmail)) {
         const client = clients.get(mail.senderEmail);
         if (client.readyState === 1) client.send(notificationString);
       }
 
-      // Broadcast to ALL connected clients
       if (wss) {
         wss.clients.forEach((client) => {
-          if (client.readyState === 1) {
-            client.send(notificationString);
-          }
+          if (client.readyState === 1) client.send(notificationString);
         });
       }
-
-      console.log(`📬 Full notification broadcasted for ${trackingId}`);
     }
 
   } catch (error) {
