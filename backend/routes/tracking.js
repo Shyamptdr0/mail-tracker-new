@@ -220,7 +220,7 @@ router.get('/pixel/:trackingId', async (req, res) => {
     
     const secondsSinceSent = mail.sentAt ? (openedAt - new Date(mail.sentAt)) / 1000 : 999;
     
-    // Always update DB (Ticks Green) to show it's "Tracked"
+    // Always update DB (Ticks Green)
     if (!mail.firstOpenedAt) mail.firstOpenedAt = openedAt;
     mail.lastOpenedAt = openedAt;
     mail.openCount += 1;
@@ -228,9 +228,8 @@ router.get('/pixel/:trackingId', async (req, res) => {
     await mail.save();
 
     // ─── NOTIFICATION LOGIC (GENUINE ONLY) ───
-    // 1. Must NOT be a Google Proxy
-    // 2. Must be at least 15 seconds after sending (to avoid immediate scans)
-    const shouldNotify = !isGoogleProxy && secondsSinceSent > 15;
+    // Reduced shield to 5 seconds for faster testing
+    const shouldNotify = !isGoogleProxy && secondsSinceSent > 5;
 
     if (shouldNotify) {
       console.log(`📬 GENUINE OPEN! Notifying sender for ${trackingId}`);

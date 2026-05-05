@@ -402,8 +402,11 @@ function updateTicksToGreen(mailId) {
     const tick = indicator.querySelector('.tracker-tick');
     if (tick && tick.classList.contains('gray')) {
       tick.classList.replace('gray', 'green');
+      // Update color for SVG
+      indicator.style.color = '#34a853'; 
       tick.style.color = '#34a853';
       tick.style.animation = 'tickAnimation 0.4s ease';
+      console.log('[Tracker] UI: Ticks turned green');
     }
   });
 }
