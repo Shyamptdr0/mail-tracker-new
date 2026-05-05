@@ -181,12 +181,17 @@ router.post('/report-open', async (req, res) => {
 // Get current status for a mail (for initial tick display)
 router.get('/status', async (req, res) => {
   try {
-    const { subject, recipient } = req.query;
+    const { threadId, recipient } = req.query;
     let query = {};
-    if (subject) query.subject = subject;
-    if (recipient) query['recipients.email'] = recipient;
+    
+    // Primary lookup by Thread ID (100% Accurate)
+    if (threadId) {
+      query.threadId = threadId;
+    } else if (recipient) {
+      // Fallback for older mails
+      query['recipients.email'] = recipient;
+    }
 
-    // Get the latest one
     const mail = await Mail.findOne(query).sort({ sentAt: -1 });
     
     if (mail) {

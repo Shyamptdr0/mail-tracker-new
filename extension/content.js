@@ -166,20 +166,27 @@ function addTrackerIndicator(container) {
   indicator.style.cssText = `display: inline-flex; margin-right: 10px; vertical-align: middle; color: #9ca3af;`;
   container.insertAdjacentElement('afterbegin', indicator);
 
-  // ─── PERSISTENCE:  // Fetch initial status from DB (Persistence)
-  if (subject || recipient) {
-    if (!chrome.runtime?.id) return; // Check if context is still valid
+  // ─── THREAD ID EXTRACTION ───
+  const threadId = row.getAttribute('data-thread-id') || row.getAttribute('data-legacy-thread-id');
+
+  // ─── PERSISTENCE: Check DB status by Thread ID (100% Accurate) ───
+  if (threadId || recipient) {
+    if (!chrome.runtime?.id) return; 
     
     try {
       chrome.runtime.sendMessage({ 
         type: 'GET_MAIL_STATUS', 
-        subject: subject,
+        threadId: threadId,
         recipientEmail: recipient 
       }, (response) => {
-        if (chrome.runtime.lastError) return;
-        if (response && response.success) {
+        if (chrome.runtime.lastError || !response) return;
+        
+        if (response.success) {
           if (response.trackingId) {
             indicator.setAttribute('data-tracking-id', response.trackingId);
+          }
+          if (threadId) {
+            indicator.setAttribute('data-thread-id', threadId);
           }
           if (response.ticks === 'green') {
             const tick = indicator.querySelector('.tracker-tick');
@@ -192,7 +199,7 @@ function addTrackerIndicator(container) {
         }
       });
     } catch (err) {
-      console.warn('[Tracker] Context invalidated, skipping status check');
+      console.log('[Tracker] Context invalidated');
     }
   }
 }
@@ -349,12 +356,12 @@ function removeTrackingPixel(composeWindow, trackingId) {
 
 // ─── Register tracked email with backend after send ───────────────────────────
 async function handleTrackedEmailSend(composeWindow, trackingId) {
-  // Gather email metadata
+  const threadId = composeWindow.getAttribute('data-thread-id') || 
+                   composeWindow.getAttribute('data-legacy-thread-id') ||
+                   window.location.hash.split('/').pop().split('?')[0];
+
   const toField = composeWindow.querySelector('[aria-label="To"]')
                || composeWindow.querySelector('[placeholder*="To"]');
-  const subjectField = composeWindow.querySelector('[aria-label="Subject"]')
-                    || composeWindow.querySelector('[name="subjectbox"]')
-                    || composeWindow.querySelector('[placeholder*="Subject"]');
 
   const recipientsRaw = toField
     ? (toField.value || toField.textContent || '').trim()
@@ -385,17 +392,17 @@ async function handleTrackedEmailSend(composeWindow, trackingId) {
       headers: FETCH_HEADERS,
       body: JSON.stringify({
         trackingId,
+        threadId, // Use unique threadId
         senderEmail,
         recipients: recipients.length ? recipients : ['recipient@unknown.com'],
-        subject,
+        subject: '', // Subject removed
         sentAt: new Date().toISOString(),
         trackingPixel: pixelUrl
       })
     });
     const result = await res.json();
     if (result.success) {
-      console.log('[Tracker] ✅ Email registered, trackingId:', trackingId);
-      showInlineNotification(null, `✅ Tracking active! You'll be notified when email is opened.`);
+      console.log('[Tracker] ✅ Email registered by ID:', trackingId);
     }
   } catch (err) {
     console.error('[Tracker] Registration error:', err.message);
@@ -454,25 +461,21 @@ async function reportEmailOpen(trackingId) {
 }
 
 // ─── Update ticks green (SPECIFIC MAIL ONLY) ──────────────────────────────────
-function updateTicksToGreen(mailId, recipientEmail, subject, trackingId) {
+function updateTicksToGreen(mailId, recipientEmail, subject, trackingId, threadId) {
   const targetRecipient = (recipientEmail || '').toLowerCase().trim();
-  const targetSubject = (subject || '').toLowerCase().trim();
-
-  console.log(`[Tracker] 🔎 Searching for row to update. TargetID: ${trackingId} | Rec: ${targetRecipient}`);
 
   document.querySelectorAll('.tracker-indicator').forEach((indicator) => {
     const rowTrackId = indicator.getAttribute('data-tracking-id');
+    const rowThreadId = indicator.getAttribute('data-thread-id');
     const rowRec = (indicator.getAttribute('data-recipient') || '').toLowerCase().trim();
-    const rowSub = (indicator.getAttribute('data-subject') || '').toLowerCase().trim();
     
-    // 1. Primary Match: Unique Tracking ID
-    let isMatch = trackingId && rowTrackId === trackingId;
+    // 1. Primary Match: Unique Tracking ID or Thread ID
+    let isMatch = (trackingId && rowTrackId === trackingId) || 
+                  (threadId && rowThreadId === threadId);
 
-    // 2. Secondary Match: Fallback to Recipient + Subject (if ID not yet tagged)
-    if (!isMatch && !rowTrackId) {
-      const isEmailMatch = targetRecipient && rowRec && (rowRec.includes(targetRecipient) || targetRecipient.includes(rowRec));
-      const isSubjectMatch = targetSubject && rowSub && (rowSub.includes(targetSubject) || targetSubject.includes(rowSub));
-      isMatch = isEmailMatch && isSubjectMatch; // Use AND for better specificity
+    // 2. Secondary Match: Fallback to Recipient (if ID not yet tagged)
+    if (!isMatch && !rowTrackId && !rowThreadId) {
+      isMatch = targetRecipient && rowRec && (rowRec.includes(targetRecipient) || targetRecipient.includes(rowRec));
     }
 
     if (isMatch) {
@@ -481,9 +484,7 @@ function updateTicksToGreen(mailId, recipientEmail, subject, trackingId) {
         tick.classList.replace('gray', 'green');
         indicator.style.color = '#34a853'; 
         tick.style.color = '#34a853';
-        tick.style.animation = 'tickAnimation 0.4s ease-out';
         if (trackingId) indicator.setAttribute('data-tracking-id', trackingId);
-        console.log(`[Tracker] ✅ MATCH FOUND! Ticks turned green for ID: ${trackingId || rowSub}`);
       }
     }
   });
