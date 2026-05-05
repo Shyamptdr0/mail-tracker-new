@@ -184,7 +184,7 @@ function observeMailComposing() {
 // ─── Setup compose window with tracking ───────────────────────────────────────
 function setupComposeTracking(composeWindow, retryCount = 0) {
   // Don't setup if already done or compose closed/removed from DOM
-  if (composeWindow.querySelector('.tracking-toggle')) return;
+  if (composeWindow.hasAttribute('data-tracking-injected')) return;
   if (!document.body.contains(composeWindow)) return;
 
   // Max 8 retries (~8 seconds total)
@@ -236,71 +236,18 @@ function setupComposeTracking(composeWindow, retryCount = 0) {
   }
 
   console.log('[Tracker] ✅ Send button found:', sendButton.getAttribute('aria-label'));
-
-  // Double-add guard (checked again after async gap)
-  if (composeWindow.querySelector('.tracking-toggle')) return;
-
-  // ── Track toggle button ──
-  const trackingButton = document.createElement('button');
-  trackingButton.className = 'tracking-toggle';
-  trackingButton.type = 'button';
-  trackingButton.innerHTML = '📍 Track';
-  trackingButton.title = 'Toggle email read-receipt tracking';
-  trackingButton.style.cssText = `
-    padding: 7px 14px;
-    margin-left: 8px;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 12px;
-    font-weight: 600;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-    vertical-align: middle;
-  `;
+  composeWindow.setAttribute('data-tracking-injected', 'true');
 
   // Generate a tracking ID upfront for this compose session
   let trackingId = crypto.randomUUID();
-  
-  // ─── AUTO-TRACKING ON BY DEFAULT ───────────────────────────────────────────
   let pixelInjected = true;
+
+  // ─── BACKGROUND AUTO-TRACKING (Silent) ───
   injectTrackingPixel(composeWindow, trackingId);
-  console.log('[Tracker] 📍 Auto-tracking enabled for this email');
 
-  trackingButton.classList.add('active');
-  trackingButton.innerHTML = '📍 Tracking ON';
-  trackingButton.style.background = 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)';
-
-  trackingButton.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const isActive = trackingButton.classList.toggle('active');
-    trackingButton.innerHTML = isActive ? '📍 Tracking ON' : '📍 Track';
-    trackingButton.style.background = isActive
-      ? 'linear-gradient(135deg, #f093fb 0%, #f5576c 100%)'
-      : 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
-
-    if (isActive) {
-      injectTrackingPixel(composeWindow, trackingId);
-      pixelInjected = true;
-    } else {
-      removeTrackingPixel(composeWindow, trackingId);
-      pixelInjected = false;
-    }
-  });
-
-  // Insert button next to send
-  const sendParent = sendButton.parentElement;
-  if (sendParent) {
-    sendParent.style.position = 'relative';
-    sendButton.insertAdjacentElement('afterend', trackingButton);
-  }
-
-  // ── Intercept Send ──
+  // ─── Intercept Send ───
   sendButton.addEventListener('click', () => {
     if (pixelInjected) {
-      // Register the email in backend (pixel is already in email body)
       handleTrackedEmailSend(composeWindow, trackingId);
     }
   }, { capture: true });

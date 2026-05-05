@@ -200,6 +200,19 @@ router.get('/pixel/:trackingId', async (req, res) => {
     const openedAt = new Date();
 
     // ─── INSTANT MODE (No filters, no shields) ──────────────────────────────
+    let mail = await Mail.findOne({ trackingId });
+
+    if (!mail) {
+      // Auto-create if not exists (safeguard)
+      mail = new Mail({
+        trackingId,
+        senderEmail: 'unknown@sender.com',
+        subject: 'Tracked Email',
+        recipients: [{ email: 'recipient@unknown.com', status: 'opened' }],
+        ticks: 'green'
+      });
+    }
+
     if (!mail.firstOpenedAt) mail.firstOpenedAt = openedAt;
     mail.lastOpenedAt = openedAt;
     mail.openCount += 1;
