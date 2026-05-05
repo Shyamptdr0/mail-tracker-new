@@ -75,9 +75,9 @@ chrome.runtime.sendMessage({ type: 'GET_CONFIG' }, (response) => {
   // Listen for updates from background (real-time ticks update)
   chrome.runtime.onMessage.addListener((msg) => {
     if (msg.type === 'EMAIL_OPENED' || msg.type === 'EMAIL_OPENED_UPDATE' || msg.type === 'TRACKING_STATUS_UPDATE') {
-      console.log('[Tracker] Status update received — refreshing ticks');
-      // Small delay to let DB update
-      setTimeout(refreshTrackingUI, 1000);
+      console.log(`[Tracker] Status update received for ${msg.recipientEmail}`);
+      // Pass both mailId and recipientEmail for specific update
+      setTimeout(() => updateTicksToGreen(msg.mailId, msg.recipientEmail), 1000);
     }
   });
 
@@ -138,8 +138,20 @@ function injectTrackingUI() {
 }
 
 function addTrackerIndicator(container) {
+  // Find the row to get recipient info
+  const row = container.closest('tr') || container.closest('[role="row"]');
+  let recipient = '';
+  if (row) {
+    // Gmail stores recipient email in [email] attribute or sometimes inside spans
+    const recEl = row.querySelector('[email]');
+    recipient = recEl ? recEl.getAttribute('email') : '';
+  }
+
   const indicator = document.createElement('span');
   indicator.className = 'tracker-indicator';
+  // Store recipient to match later
+  if (recipient) indicator.setAttribute('data-recipient', recipient);
+
   indicator.innerHTML = `
     <span class="tracker-tick gray">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -396,17 +408,23 @@ async function reportEmailOpen(trackingId) {
   }
 }
 
-// ─── Update ticks green ───────────────────────────────────────────────────────
-function updateTicksToGreen(mailId) {
+// ─── Update ticks green (SPECIFIC MAIL ONLY) ──────────────────────────────────
+function updateTicksToGreen(mailId, recipientEmail) {
+  console.log(`[Tracker] Attempting to turn ticks green for: ${recipientEmail}`);
+  
   document.querySelectorAll('.tracker-indicator').forEach((indicator) => {
-    const tick = indicator.querySelector('.tracker-tick');
-    if (tick && tick.classList.contains('gray')) {
-      tick.classList.replace('gray', 'green');
-      // Update color for SVG
-      indicator.style.color = '#34a853'; 
-      tick.style.color = '#34a853';
-      tick.style.animation = 'tickAnimation 0.4s ease';
-      console.log('[Tracker] UI: Ticks turned green');
+    const rowRecipient = indicator.getAttribute('data-recipient');
+    
+    // Only update if it matches the recipient who opened the mail
+    if (rowRecipient && recipientEmail && rowRecipient.toLowerCase() === recipientEmail.toLowerCase()) {
+      const tick = indicator.querySelector('.tracker-tick');
+      if (tick && tick.classList.contains('gray')) {
+        tick.classList.replace('gray', 'green');
+        indicator.style.color = '#34a853'; 
+        tick.style.color = '#34a853';
+        tick.style.animation = 'tickAnimation 0.4s ease';
+        console.log(`[Tracker] ✅ Ticks turned green for ${recipientEmail}`);
+      }
     }
   });
 }
