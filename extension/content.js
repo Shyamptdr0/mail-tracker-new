@@ -140,14 +140,19 @@ function injectTrackingUI() {
 function addTrackerIndicator(container) {
   const indicator = document.createElement('span');
   indicator.className = 'tracker-indicator';
-  indicator.innerHTML = `<span class="tracker-tick gray">✓✓</span>`;
+  indicator.innerHTML = `
+    <span class="tracker-tick gray">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M2 12L7 17L12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M7 12L12 17L22 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </span>
+  `;
   indicator.style.cssText = `
     display: inline-flex;
-    margin-right: 8px;
-    font-size: 13px;
-    font-weight: 800;
-    cursor: default;
+    margin-right: 10px;
     vertical-align: middle;
+    color: #9ca3af;
   `;
   container.insertAdjacentElement('afterbegin', indicator);
 }
@@ -356,6 +361,11 @@ function observeEmailOpening() {
     const main = document.querySelector('[role="main"]');
     if (!main) return;
     main.querySelectorAll('img[src*="/api/tracking/pixel/"]').forEach((pixel) => {
+      // ─── FIX: Ignore pixels inside compose windows ───
+      if (pixel.closest('[role="dialog"]') || pixel.closest('.M9')) {
+        return; 
+      }
+
       if (!pixel.hasAttribute('data-reported')) {
         pixel.setAttribute('data-reported', 'true');
         const trackingId = pixel.src.split('/api/tracking/pixel/')[1];

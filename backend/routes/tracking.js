@@ -213,23 +213,33 @@ router.get('/pixel/:trackingId', async (req, res) => {
       });
     }
 
+    // ─── SMART FILTERING ───────────────────────────────────────────────────
+    const isGoogleProxy = userAgent.includes('GoogleImageProxy') || 
+                          userAgent.includes('via ggpht.com') ||
+                          userAgent.includes('Google-Proxy');
+    
+    const secondsSinceSent = mail.sentAt ? (openedAt - new Date(mail.sentAt)) / 1000 : 999;
+    
+    // Always update DB (Ticks Green) to show it's "Tracked"
     if (!mail.firstOpenedAt) mail.firstOpenedAt = openedAt;
     mail.lastOpenedAt = openedAt;
     mail.openCount += 1;
     mail.ticks = 'green'; 
     await mail.save();
-    console.log(`🚀 INSTANT: DB Updated & Notification triggering for ${trackingId}`);
 
-    // Always notify instantly
-    const shouldNotify = true; 
+    // ─── NOTIFICATION LOGIC (GENUINE ONLY) ───
+    // 1. Must NOT be a Google Proxy
+    // 2. Must be at least 15 seconds after sending (to avoid immediate scans)
+    const shouldNotify = !isGoogleProxy && secondsSinceSent > 15;
 
     if (shouldNotify) {
+      console.log(`📬 GENUINE OPEN! Notifying sender for ${trackingId}`);
       await TrackingEvent.createEvent({
         mailId: mail._id,
         trackingId,
         eventType: 'opened',
         senderEmail: mail.senderEmail,
-        recipientEmail: 'unknown@recipient.com',
+        recipientEmail: 'recipient',
         timestamp: openedAt,
         openDetails: { userAgent, ipAddress }
       });
