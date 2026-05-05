@@ -26,11 +26,15 @@ chrome.storage.local.get(['backendUrl', 'wsUrl', 'userEmail'], (result) => {
     CONFIG.BACKEND_URL = result.backendUrl.replace(/^http:\/\//i, 'https://');
   }
   if (result.wsUrl) {
-    // Auto-upgrade ws → wss (Render/ngrok require secure WebSocket)
-    CONFIG.WS_URL = result.wsUrl.replace(/^ws:\/\//i, 'wss://');
+    // Auto-upgrade ws → wss and ensure /ws path
+    let url = result.wsUrl.replace(/^ws:\/\//i, 'wss://');
+    if (!url.endsWith('/ws')) {
+      url = url.replace(/\/$/, '') + '/ws';
+    }
+    CONFIG.WS_URL = url;
   } else {
-    // Derive WS_URL from BACKEND_URL if not stored separately
-    CONFIG.WS_URL = CONFIG.BACKEND_URL.replace(/^https:\/\//i, 'wss://') + '/ws';
+    // Derive WS_URL from BACKEND_URL and add /ws
+    CONFIG.WS_URL = CONFIG.BACKEND_URL.replace(/^https:\/\//i, 'wss://').replace(/\/$/, '') + '/ws';
   }
   if (result.userEmail) userEmail = result.userEmail;
   initWebSocket();

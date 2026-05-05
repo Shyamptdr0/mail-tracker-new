@@ -72,6 +72,15 @@ chrome.runtime.sendMessage({ type: 'GET_CONFIG' }, (response) => {
     }
   }
 
+  // Listen for updates from background (real-time ticks update)
+  chrome.runtime.onMessage.addListener((msg) => {
+    if (msg.type === 'EMAIL_OPENED' || msg.type === 'EMAIL_OPENED_UPDATE' || msg.type === 'TRACKING_STATUS_UPDATE') {
+      console.log('[Tracker] Status update received — refreshing ticks');
+      // Small delay to let DB update
+      setTimeout(refreshTrackingUI, 1000);
+    }
+  });
+
   // Also load userEmail from storage (set in options page)
   chrome.storage.local.get(['userEmail', 'backendUrl'], (result) => {
     if (result.userEmail) userEmail = result.userEmail;
