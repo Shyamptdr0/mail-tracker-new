@@ -15,7 +15,7 @@
   "host_permissions": [
     "https://mail.google.com/*",
     "https://gmail.google.com/*",
-    "https://stress-sector-spiritism.ngrok-free.dev/*",
+    "https://mail-tracker-new-one.onrender.com/*",
     "http://localhost:5000/*"
   ],
   "background": {

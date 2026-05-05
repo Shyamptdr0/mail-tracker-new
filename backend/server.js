@@ -53,8 +53,8 @@ mongoose.connect(MONGODB_URI, {
     process.exit(1);
   });
 
-// WebSocket Setup
-const wss = new WebSocket.Server({ server });
+// WebSocket Setup — explicit path required for Render.com proxy compatibility
+const wss = new WebSocket.Server({ server, path: '/ws' });
 const clients = new Map(); // Store connected clients
 
 wss.on('connection', (ws) => {

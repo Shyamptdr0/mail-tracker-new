@@ -11,8 +11,8 @@ chrome.runtime.onConnect.addListener((port) => {
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 let CONFIG = {
-  BACKEND_URL: 'https://stress-sector-spiritism.ngrok-free.dev',
-  WS_URL:      'wss://stress-sector-spiritism.ngrok-free.dev'
+  BACKEND_URL: 'https://mail-tracker-new-one.onrender.com',
+  WS_URL:      'wss://mail-tracker-new-one.onrender.com/ws'
 };
 
 let ws = null;
@@ -21,9 +21,18 @@ let userEmail = '';
 
 // ─── Load config from storage on startup ─────────────────────────────────────
 chrome.storage.local.get(['backendUrl', 'wsUrl', 'userEmail'], (result) => {
-  if (result.backendUrl) CONFIG.BACKEND_URL = result.backendUrl;
-  if (result.wsUrl)      CONFIG.WS_URL      = result.wsUrl;
-  if (result.userEmail)  userEmail           = result.userEmail;
+  if (result.backendUrl) {
+    // Auto-upgrade http → https
+    CONFIG.BACKEND_URL = result.backendUrl.replace(/^http:\/\//i, 'https://');
+  }
+  if (result.wsUrl) {
+    // Auto-upgrade ws → wss (Render/ngrok require secure WebSocket)
+    CONFIG.WS_URL = result.wsUrl.replace(/^ws:\/\//i, 'wss://');
+  } else {
+    // Derive WS_URL from BACKEND_URL if not stored separately
+    CONFIG.WS_URL = CONFIG.BACKEND_URL.replace(/^https:\/\//i, 'wss://') + '/ws';
+  }
+  if (result.userEmail) userEmail = result.userEmail;
   initWebSocket();
 });
 

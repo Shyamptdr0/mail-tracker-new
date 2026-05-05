@@ -1,6 +1,7 @@
 // content.js - Content script for Gmail (with pixel injection tracking)
 
-const NGROK_URL = 'https://stress-sector-spiritism.ngrok-free.dev';
+const NGROK_URL = 'https://mail-tracker-new-one.onrender.com';
+
 
 // Common headers for all backend fetch requests
 const FETCH_HEADERS = {
