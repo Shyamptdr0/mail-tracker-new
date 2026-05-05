@@ -215,7 +215,16 @@ router.get('/pixel/:trackingId', async (req, res) => {
     }
 
     // Check if this is a genuine open (not a bot/proxy)
-    const isGenuineOpen = !isGoogleProxy;
+    let isGenuineOpen = !isGoogleProxy;
+
+    // ─── TIME SHIELD: Ignore opens within 60 seconds of sending ────────────────
+    if (mail.sentAt) {
+      const secondsSinceSent = (openedAt - new Date(mail.sentAt)) / 1000;
+      if (secondsSinceSent < 60) {
+        console.log(`⏳ Shield Active: Hit only ${Math.round(secondsSinceSent)}s after sending. Ignoring notification for ${trackingId}`);
+        isGenuineOpen = false;
+      }
+    }
 
     if (isGenuineOpen) {
       if (!mail.firstOpenedAt) mail.firstOpenedAt = openedAt;

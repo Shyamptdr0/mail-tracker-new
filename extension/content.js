@@ -125,31 +125,31 @@ function initializeTracker() {
 // ─── Inject tracking indicators into Gmail email list ─────────────────────────
 function injectTrackingUI() {
   const observer = new MutationObserver(() => {
-    document.querySelectorAll('[role="gridcell"]').forEach((row) => {
-      if (!row.querySelector('.tracker-indicator')) {
-        addTrackerIndicator(row);
+    // Target only the "Sender" cell or "Subject" cell to avoid duplicates in same row
+    // Gmail uses specific classes or aria-labels for these. 
+    // .yX is often the sender container.
+    document.querySelectorAll('.yX, .yP, .zF').forEach((cell) => {
+      if (!cell.querySelector('.tracker-indicator')) {
+        addTrackerIndicator(cell);
       }
     });
   });
   observer.observe(document.body, { childList: true, subtree: true });
 }
 
-function addTrackerIndicator(emailRow) {
-  const indicator = document.createElement('div');
+function addTrackerIndicator(container) {
+  const indicator = document.createElement('span');
   indicator.className = 'tracker-indicator';
   indicator.innerHTML = `<span class="tracker-tick gray">✓✓</span>`;
   indicator.style.cssText = `
-    display: inline-block;
-    margin-left: 10px;
-    font-size: 12px;
-    font-weight: bold;
-    color: #b3b3b3;
-    cursor: pointer;
-    padding: 2px 6px;
-    border-radius: 3px;
-    transition: all 0.3s ease;
+    display: inline-flex;
+    margin-right: 8px;
+    font-size: 13px;
+    font-weight: 800;
+    cursor: default;
+    vertical-align: middle;
   `;
-  emailRow.appendChild(indicator);
+  container.insertAdjacentElement('afterbegin', indicator);
 }
 
 // ─── Watch for compose window ──────────────────────────────────────────────────

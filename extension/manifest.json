@@ -50,7 +50,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "injected-ui.js"
+        "icons/*"
       ],
       "matches": [
         "https://mail.google.com/*",
