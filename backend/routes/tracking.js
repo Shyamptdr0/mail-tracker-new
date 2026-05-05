@@ -213,12 +213,9 @@ router.get('/pixel/:trackingId', async (req, res) => {
       });
     }
 
-    // ─── SMART FILTERING ───────────────────────────────────────────────────
+    // ─── SIMPLE RELIABLE FILTERING ──────────────────────────────────────────
     const isGoogleProxy = userAgent.includes('GoogleImageProxy') || 
-                          userAgent.includes('via ggpht.com') ||
-                          userAgent.includes('Google-Proxy');
-    
-    const secondsSinceSent = mail.sentAt ? (openedAt - new Date(mail.sentAt)) / 1000 : 999;
+                          userAgent.includes('via ggpht.com');
     
     // Always update DB (Ticks Green)
     if (!mail.firstOpenedAt) mail.firstOpenedAt = openedAt;
@@ -227,18 +224,15 @@ router.get('/pixel/:trackingId', async (req, res) => {
     mail.ticks = 'green'; 
     await mail.save();
 
-    // ─── NOTIFICATION LOGIC (GENUINE ONLY) ───
-    // Reduced shield to 5 seconds for faster testing
-    const shouldNotify = !isGoogleProxy && secondsSinceSent > 5;
-
-    if (shouldNotify) {
-      console.log(`📬 GENUINE OPEN! Notifying sender for ${trackingId}`);
+    // Notify for EVERYTHING except Google Proxy
+    if (!isGoogleProxy) {
+      console.log(`📬 OPEN DETECTED! Notifying for ${trackingId}`);
       await TrackingEvent.createEvent({
         mailId: mail._id,
         trackingId,
         eventType: 'opened',
         senderEmail: mail.senderEmail,
-        recipientEmail: 'recipient',
+        recipientEmail: 'Recipient',
         timestamp: openedAt,
         openDetails: { userAgent, ipAddress }
       });
