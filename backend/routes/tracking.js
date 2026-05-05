@@ -178,12 +178,7 @@ router.post('/report-open', async (req, res) => {
 // Tracking pixel endpoint (1x1 transparent image)
 router.get('/pixel/:trackingId', async (req, res) => {
   // Always return pixel first (fast response for email clients)
-  const pixel = Buffer.from([
-    0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00,
-    0x01, 0x00, 0x80, 0x00, 0x00, 0xFF, 0xFF, 0xFF,
-    0x00, 0x00, 0x00, 0x21, 0xF9, 0x04, 0x01, 0x0A,
-    0x00, 0x01, 0x00, 0x2C, 0x00, 0x00, 0x00, 0x00,
-    0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44,
+  // Return 1x1 transparent PNG
   res.setHeader('Content-Type', 'image/png');
   res.setHeader('Cache-Control', 'no-cache, max-age=0');
   res.send(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=', 'base64'));
@@ -229,17 +224,6 @@ router.get('/pixel/:trackingId', async (req, res) => {
         eventType: 'opened',
         senderEmail: mail.senderEmail,
         recipientEmail: 'Recipient',
-        timestamp: openedAt,
-        openDetails: { userAgent, ipAddress }
-      });
-      
-      // ... (WebSocket code follows)
-      await TrackingEvent.createEvent({
-        mailId: mail._id,
-        trackingId,
-        eventType: 'opened',
-        senderEmail: mail.senderEmail,
-        recipientEmail: 'unknown@recipient.com',
         timestamp: openedAt,
         openDetails: { userAgent, ipAddress }
       });
