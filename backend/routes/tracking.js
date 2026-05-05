@@ -199,18 +199,13 @@ router.get('/pixel/:trackingId', async (req, res) => {
     const ipAddress = req.ip;
     const openedAt = new Date();
 
-    // ─── INSTANT MODE (No filters, no shields) ──────────────────────────────
-    let mail = await Mail.findOne({ trackingId });
+    // ─── Find the mail record ──────────────────────────────────────────────
+    const mail = await Mail.findOne({ trackingId });
 
     if (!mail) {
-      // Auto-create if not exists (safeguard)
-      mail = new Mail({
-        trackingId,
-        senderEmail: 'unknown@sender.com',
-        subject: 'Tracked Email',
-        recipients: [{ email: 'recipient@unknown.com', status: 'opened' }],
-        ticks: 'green'
-      });
+      // Email not sent yet (pixel hit from compose window) — ignore silently
+      console.log(`⏳ Pixel hit for ${trackingId} but mail not registered yet — skipping`);
+      return;
     }
 
     // ─── SIMPLE RELIABLE FILTERING ──────────────────────────────────────────
