@@ -301,24 +301,31 @@ function injectTrackingPixel(composeWindow, trackingId) {
             || composeWindow.querySelector('.Am.Al.editable')
             || composeWindow.querySelector('[contenteditable="true"]');
 
-  if (!body) {
-    console.warn('[Tracker] Could not find email body for pixel injection');
-    return;
-  }
+  const now = new Date();
+  const timestampStr = now.toLocaleString('en-US', { 
+    day: '2-digit', month: '2-digit', year: '2-digit', 
+    hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true 
+  }).toLowerCase();
 
-  const pixelUrl = `${CONFIG.BACKEND_URL}/api/tracking/pixel/${trackingId}`;
+  const trackingHtml = `
+    <div dir="ltr" class="gmail_signature" data-smartmail="gmail_signature">
+      <br><br>
+      <div id="tracker-signature" contenteditable="false" style="user-select:none; color:#888; font-size:11px; font-family:Inter,sans-serif; border-top:1px solid #eee; padding-top:8px; display:inline-block;">
+        <img src="${CONFIG.BACKEND_URL}/api/tracking/pixel/${trackingId}" width="1" height="1" style="display:none !important;" alt="" data-tracker-pixel="${trackingId}">
+        <span style="display:flex; align-items:center;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style="margin-right:5px; color:#34a853;">
+            <path d="M2 12L7 17L12 12" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 12L12 17L22 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Email tracked with Email Tracker Pro
+          <span style="color:transparent; font-size:0; width:0; height:0; opacity:0;">${timestampStr}</span>
+        </span>
+      </div>
+    </div>
+  `;
 
-  // Create invisible pixel image
-  const pixel = document.createElement('img');
-  pixel.src = pixelUrl;
-  pixel.width = 1;
-  pixel.height = 1;
-  pixel.alt = '';
-  pixel.setAttribute('data-tracker-pixel', trackingId);
-  pixel.style.cssText = 'width:1px;height:1px;opacity:0.01;display:inline;border:0;outline:0;';
-
-  body.appendChild(pixel);
-  console.log(`[Tracker] ✅ Pixel injected: ${pixelUrl}`);
+  body.insertAdjacentHTML('beforeend', trackingHtml);
+  console.log('[Tracker] ✅ Mailsuite-style signature injected');
 }
 
 function removeTrackingPixel(composeWindow, trackingId) {
@@ -392,10 +399,20 @@ function observeEmailOpening() {
         return; 
       }
 
-      if (!pixel.hasAttribute('data-reported')) {
-        pixel.setAttribute('data-reported', 'true');
-        const trackingId = pixel.src.split('/api/tracking/pixel/')[1];
-        if (trackingId) reportEmailOpen(trackingId);
+      const src = pixel.getAttribute('src');
+      const trackingId = src.split('/').pop();
+      
+      // ─── SENDER CHECK: Don't report if I am the sender ───
+      // We check if the email row/view belongs to us
+      if (userEmail && document.body.innerText.includes(userEmail)) {
+        // This is a loose check, but helps prevent obvious self-reports
+        console.log('[Tracker] Self-view detected, skipping manual report');
+        return;
+      }
+
+      if (trackingId && !mailTrackingMap.has(trackingId)) {
+        mailTrackingMap.set(trackingId, true);
+        reportEmailOpen(trackingId);
       }
     });
   });

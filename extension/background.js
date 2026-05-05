@@ -15,6 +15,11 @@ let CONFIG = {
   WS_URL:      'wss://mail-tracker-new-one.onrender.com/ws'
 };
 
+const FETCH_HEADERS = {
+  'Content-Type': 'application/json',
+  'ngrok-skip-browser-warning': 'true'
+};
+
 let ws = null;
 let wsReconnectTimer = null;
 let userEmail = '';
@@ -137,13 +142,18 @@ async function pollForUpdates() {
 
 // ─── Event handlers ───────────────────────────────────────────────────────────
 async function handleEmailOpened(data) {
-  const { mailId, recipientEmail, openedAt, subject } = data;
+  const { mailId, recipientEmail, openedAt, subject, device } = data;
   console.log(`[Background] Email opened by ${recipientEmail}`);
 
-  showNotification({
-    title:   '📬 Email Opened!',
-    message: `${recipientEmail} opened: ${subject || 'your email'}`,
-    iconUrl: 'icons/icon-128.png'
+  const deviceStr = device ? ` on ${device}` : '';
+
+  // Use native chrome notifications (Mailsuite style)
+  chrome.notifications.create(`open-${Date.now()}`, {
+    type: 'basic',
+    iconUrl: 'icons/icon-128.png',
+    title: subject || 'Email Opened!',
+    message: `✓✓ ${recipientEmail || 'Someone'} has just read your email${deviceStr}`,
+    priority: 2
   });
 
   // Broadcast to all Gmail tabs (DO NOT save to localStorage)

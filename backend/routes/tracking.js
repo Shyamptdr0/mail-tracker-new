@@ -26,7 +26,9 @@ router.post('/send', async (req, res) => {
     let mail = await Mail.findOne({ trackingId });
     if (!mail) {
       mail = new Mail({
-        senderEmail,
+        senderEmail: senderEmail.toLowerCase(),
+        senderIp: req.ip,
+        senderUa: req.get('User-Agent') || '',
         subject: subject || '(no subject)',
         recipients: recipients.map(email => ({
           email: email.toLowerCase(),
@@ -34,7 +36,8 @@ router.post('/send', async (req, res) => {
         })),
         trackingId,
         trackingPixel,
-        sentAt: sentAt || new Date()
+        sentAt: sentAt || new Date(),
+        ticks: 'gray'
       });
       await mail.save();
 
@@ -208,6 +211,15 @@ router.get('/pixel/:trackingId', async (req, res) => {
        return;
     }
 
+    // ─── SELF-OPEN SUPPRESSION ─────────────────────────────────────────────
+    // If the hit matches the sender's IP and UA, it's likely a self-open
+    const isSelfOpen = mail.senderIp === ipAddress && mail.senderUa === userAgent;
+    
+    if (isSelfOpen) {
+      console.log(`🏠 SELF-OPEN: Ignored hit from sender's own device for ${trackingId}`);
+      return;
+    }
+
     // ─── DEVICE DETECTION ──────────────────────────────────────────────────
     let device = 'Desktop';
     if (/android|iphone|ipad|ipod|mobile/i.test(userAgent)) {
@@ -248,7 +260,7 @@ router.get('/pixel/:trackingId', async (req, res) => {
         recipientEmail: recipientEmail,
         openedAt,
         subject: mail.subject,
-        device: device // Include device in notification
+        device: device
       };
       const notificationString = JSON.stringify(notificationData);
 
